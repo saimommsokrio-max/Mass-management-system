@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Mess Management System (মেস ম্যানেজমেন্ট)</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-area">
+        <div class="logo-badge">M</div>
+        <div class="title-group">
+          <h1 id="appMessName">Mess Management System</h1>
+          <p id="appManagerText">Secretary: Pawan | Smart Bachelor Mess</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="month-selector">
+          <label for="monthSelect" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Month:</label>
+          <select id="monthSelect"></select>
+        </div>
+
+        <button class="btn btn-outline btn-sm" id="btnNewMonth">+ New Month</button>
+        <button class="btn btn-outline btn-sm" id="btnPrint" title="Print or Save PDF Statement">🖨️ Print Sheet</button>
+        <button class="btn btn-outline btn-sm" id="btnToggleTheme" title="Toggle Theme">🌓</button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="tab-settlement">📊 Dashboard & Settlement</button>
+      <button class="nav-tab" data-tab="tab-meals">🍚 Daily Meal Sheet</button>
+      <button class="nav-tab" data-tab="tab-bazar">🛒 Bazar Expenses</button>
+      <button class="nav-tab" data-tab="tab-deposits">💵 Member Deposits</button>
+      <button class="nav-tab" data-tab="tab-extra">💡 Extra & Utilities</button>
+      <button class="nav-tab" data-tab="tab-members">👥 Members & Settings</button>
+    </nav>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-content">
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-accent: #2563eb;">
+        <div class="kpi-header">
+          <span>MEAL RATE (খাবার রেট)</span>
+          <span>৳/Meal</span>
+        </div>
+        <div class="kpi-value" id="kpiMealRate">৳0.00</div>
+        <div class="kpi-sub" id="kpiMealRateSub">Total Bazar ÷ Total Meals</div>
+      </div>
+
+      <div class="kpi-card" style="--card-accent: #059669;">
+        <div class="kpi-header">
+          <span>TOTAL BAZAR (মোট বাজার)</span>
+          <span>Expense</span>
+        </div>
+        <div class="kpi-value" id="kpiTotalBazar">৳0.00</div>
+        <div class="kpi-sub" id="kpiBazarCount">0 Market trips</div>
+      </div>
+
+      <div class="kpi-card" style="--card-accent: #d97706;">
+        <div class="kpi-header">
+          <span>TOTAL MEALS (মোট মিল)</span>
+          <span>Count</span>
+        </div>
+        <div class="kpi-value" id="kpiTotalMeals">0</div>
+        <div class="kpi-sub" id="kpiActiveMembers">9 Active members</div>
+      </div>
+
+      <div class="kpi-card" style="--card-accent: #7c3aed;">
+        <div class="kpi-header">
+          <span>EXTRA PER HEAD (মাথাপিছু বিবিধ)</span>
+          <span>Shared</span>
+        </div>
+        <div class="kpi-value" id="kpiExtraPerHead">৳0.00</div>
+        <div class="kpi-sub" id="kpiTotalExtra">Total Extra: ৳0.00</div>
+      </div>
+
+      <div class="kpi-card" style="--card-accent: #0284c7;">
+        <div class="kpi-header">
+          <span>FUND BALANCE (মেস তহবিল)</span>
+          <span>Closing</span>
+        </div>
+        <div class="kpi-value" id="kpiFundBalance">৳0.00</div>
+        <div class="kpi-sub" id="kpiOpeningFund">Opening Fund: ৳0.00</div>
+      </div>
+    </div>
+
+    <!-- TAB 1: DASHBOARD & SETTLEMENT -->
+    <section id="tab-settlement" class="tab-pane active">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📋 Final Settlement & Member Balances (ফাইনাল হিসাব খাতা)</span>
+          </div>
+          <div id="balanceCheckBadge" class="badge badge-receive">Net Balance = ৳0.00 (Balanced)</div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="settlementTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Member Name</th>
+                  <th>Meals</th>
+                  <th>Meal Cost</th>
+                  <th>Extra Share</th>
+                  <th>Total Cost</th>
+                  <th>Bazar Given</th>
+                  <th>Deposits / Extra</th>
+                  <th>Total Credit</th>
+                  <th>Net Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="settlementTableBody">
+                <!-- Dynamically Populated -->
+              </tbody>
+              <tfoot id="settlementTableFoot">
+                <!-- Totals -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DAILY MEAL SHEET -->
+    <section id="tab-meals" class="tab-pane" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🍚 Daily Meal Grid (Day 1 - 31)</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Mode:</span>
+            <button class="btn btn-sm btn-outline active" id="btnModeDaily">Daily Grid</button>
+            <button class="btn btn-sm btn-outline" id="btnModeManual">Manual Totals</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Tip: Click any cell to update meal count (supports decimal values like 1, 1.5, 2, 3). Changes save automatically.
+          </p>
+          <div id="dailyMealView" class="meal-matrix-wrapper">
+            <table class="data-table meal-matrix-table" id="mealGridTable">
+              <thead id="mealGridHead">
+                <!-- Days / Member columns -->
+              </thead>
+              <tbody id="mealGridBody">
+                <!-- Daily Rows -->
+              </tbody>
+              <tfoot id="mealGridFoot">
+                <!-- Member Totals -->
+              </tfoot>
+            </table>
+          </div>
+
+          <div id="manualMealView" style="display: none;">
+            <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 1rem;">
+              Directly enter month-end meal counts per member if daily breakdown is not maintained:
+            </p>
+            <div class="form-grid" id="manualMealInputs">
+              <!-- Inputs generated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: BAZAR TRACKER -->
+    <section id="tab-bazar" class="tab-pane" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🛒 Bazar / Market Purchase List</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnOpenAddBazar">+ Add Bazar Expense</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="bazarTable">
+              <thead>
+                <tr>
+                  <th>Date / Days</th>
+                  <th>Shopped By</th>
+                  <th>Amount (৳)</th>
+                  <th>Meals (During Period)</th>
+                  <th>Period Rate (৳)</th>
+                  <th>Description</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="bazarTableBody">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DEPOSITS -->
+    <section id="tab-deposits" class="tab-pane" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>💵 Member Advance Cash Deposits</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnOpenAddDeposit">+ Record Deposit</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="depositTable">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Member Name</th>
+                  <th>Amount (৳)</th>
+                  <th>Method / Category</th>
+                  <th>Notes</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="depositTableBody">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: EXTRA & UTILITY EXPENSES -->
+    <section id="tab-extra" class="tab-pane" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>💡 Shared Extra & Utility Bills (Electricity, Gas, Wi-Fi, Water, Maid)</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnOpenAddExtra">+ Add Expense</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="extraTable">
+              <thead>
+                <tr>
+                  <th>Expense Title</th>
+                  <th>Category</th>
+                  <th>Amount (৳)</th>
+                  <th>Paid By</th>
+                  <th>Date</th>
+                  <th>Notes</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="extraTableBody">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: MEMBERS & SETTINGS -->
+    <section id="tab-members" class="tab-pane" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>👥 Mess Members Management</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnOpenAddMember">+ Add New Member</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="memberTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Room No</th>
+                  <th>Phone</th>
+                  <th>Active Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="memberTableBody">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>⚙️ Mess System Settings</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnSaveSettings">Save Settings</button>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inputMessName">Mess Name</label>
+              <input type="text" class="form-control" id="inputMessName">
+            </div>
+            <div class="form-group">
+              <label for="inputGeneralSec">General Secretary / Manager</label>
+              <input type="text" class="form-control" id="inputGeneralSec">
+            </div>
+            <div class="form-group">
+              <label for="inputCurrency">Currency Symbol</label>
+              <input type="text" class="form-control" id="inputCurrency" value="৳">
+            </div>
+            <div class="form-group">
+              <label for="selectSplitExtra">Extra (Bibidh) Split Policy</label>
+              <select class="form-control" id="selectSplitExtra">
+                <option value="1">Split equally among active members (Yes)</option>
+                <option value="0">Do not split automatically (No)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODALS CONTAINER -->
+  <div id="modalContainer"></div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
