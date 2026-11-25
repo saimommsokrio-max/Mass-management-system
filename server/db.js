@@ -2,12 +2,27 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-const dataDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+const isVercel = !!process.env.VERCEL;
+let dbPath;
+
+if (isVercel) {
+  dbPath = path.join('/tmp', 'mess.db');
+  const bundledDb = path.join(__dirname, '..', 'data', 'mess.db');
+  if (!fs.existsSync(dbPath) && fs.existsSync(bundledDb)) {
+    try {
+      fs.copyFileSync(bundledDb, dbPath);
+    } catch (e) {
+      console.warn('Could not copy bundled DB to /tmp, starting fresh DB', e.message);
+    }
+  }
+} else {
+  const dataDir = path.join(__dirname, '..', 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  dbPath = path.join(dataDir, 'mess.db');
 }
 
-const dbPath = path.join(dataDir, 'mess.db');
 const db = new DatabaseSync(dbPath);
 
 // Enable Foreign Keys and WAL Mode
