@@ -108,16 +108,15 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Member Name</th>
-                  <th>Meals</th>
-                  <th>Meal Cost</th>
-                  <th>Extra Share</th>
-                  <th>Total Cost</th>
-                  <th>Bazar Given</th>
-                  <th>Deposits / Extra</th>
-                  <th>Total Credit</th>
-                  <th>Net Balance</th>
-                  <th>Status</th>
+                  <th>Member Name (সদস্যের নাম)</th>
+                  <th>Meals (মিল)</th>
+                  <th>Bazar Credit (বাজার জমা)</th>
+                  <th>Extra Credit (বিবিধ জমা)</th>
+                  <th>Total Credit (মোট জমা)</th>
+                  <th>Meal Cost (মিল খরচ)</th>
+                  <th>Extra Share (বিবিধ খরচ)</th>
+                  <th>Net Balance (হিসাব)</th>
+                  <th>Status (অবস্থা)</th>
                 </tr>
               </thead>
               <tbody id="settlementTableBody">
@@ -201,6 +200,7 @@
               <tbody id="bazarTableBody">
                 <!-- Dynamic rows -->
               </tbody>
+              <tfoot id="bazarTableFoot"></tfoot>
             </table>
           </div>
         </div>
@@ -232,6 +232,7 @@
               <tbody id="depositTableBody">
                 <!-- Dynamic rows -->
               </tbody>
+              <tfoot id="depositTableFoot"></tfoot>
             </table>
           </div>
         </div>
@@ -264,6 +265,7 @@
               <tbody id="extraTableBody">
                 <!-- Dynamic rows -->
               </tbody>
+              <tfoot id="extraTableFoot"></tfoot>
             </table>
           </div>
         </div>

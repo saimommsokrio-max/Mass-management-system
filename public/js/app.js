@@ -271,7 +271,7 @@ function renderSettlementTable() {
     totalNet += m.netBalance;
 
     let statusBadgeClass = 'badge-settled';
-    let statusText = 'Settled';
+    let statusText = 'Settled (পরিশোধিত)';
     if (m.status.includes('Receive')) {
       statusBadgeClass = 'badge-receive';
       statusText = 'Pabe (পাবে)';
@@ -286,33 +286,31 @@ function renderSettlementTable() {
         m.name,
         m.role === 'secretary' ? el('span', { className: 'badge badge-role', style: 'margin-left: 6px;' }, 'Sec') : ''
       ),
-      el('td', {}, m.meals),
-      el('td', {}, formatMoney(m.mealCost, cur)),
-      el('td', {}, formatMoney(m.extraShare, cur)),
-      el('td', { style: 'font-weight: 600;' }, formatMoney(m.totalCost, cur)),
+      el('td', { style: 'font-weight: 700;' }, m.meals),
       el('td', {}, formatMoney(m.bazarCredit, cur)),
       el('td', {}, formatMoney(m.depositCredit + m.extraPaidCredit, cur)),
-      el('td', { style: 'font-weight: 600;' }, formatMoney(m.totalCredit, cur)),
+      el('td', { style: 'font-weight: 700;' }, formatMoney(m.totalCredit, cur)),
+      el('td', {}, formatMoney(m.mealCost, cur)),
+      el('td', {}, formatMoney(m.extraShare, cur)),
       el('td', {
-        style: `font-weight: 700; color: ${m.netBalance > 0.5 ? 'var(--success-text)' : (m.netBalance < -0.5 ? 'var(--danger-text)' : 'inherit')};`
+        style: `font-weight: 800; color: ${m.netBalance > 0.5 ? 'var(--success-text)' : (m.netBalance < -0.5 ? 'var(--danger-text)' : 'inherit')};`
       }, `${m.netBalance > 0 ? '+' : ''}${formatMoney(m.netBalance, cur)}`),
       el('td', {}, el('span', { className: `badge ${statusBadgeClass}` }, statusText))
     );
     tbody.appendChild(tr);
   });
 
-  // Table Footer Totals
+  // Table Footer Totals (Matches Excel Row 28)
   const footTr = el('tr', {},
-    el('td', { colSpan: 2, style: 'font-weight: 800;' }, 'TOTAL'),
-    el('td', {}, totalMeals.toFixed(1)),
-    el('td', {}, formatMoney(totalMealCost, cur)),
-    el('td', {}, formatMoney(totalExtraShare, cur)),
-    el('td', {}, formatMoney(totalOverallCost, cur)),
-    el('td', {}, formatMoney(totalBazarCredit, cur)),
-    el('td', {}, formatMoney(totalDepCredit, cur)),
-    el('td', {}, formatMoney(totalOverallCredit, cur)),
+    el('td', { colSpan: 2, style: 'font-weight: 800;' }, 'TOTAL (সর্বমোট)'),
+    el('td', { style: 'font-weight: 800;' }, totalMeals.toFixed(1)),
+    el('td', { style: 'font-weight: 800;' }, formatMoney(totalBazarCredit, cur)),
+    el('td', { style: 'font-weight: 800;' }, formatMoney(totalDepCredit, cur)),
+    el('td', { style: 'font-weight: 800;' }, formatMoney(totalOverallCredit, cur)),
+    el('td', { style: 'font-weight: 800;' }, formatMoney(totalMealCost, cur)),
+    el('td', { style: 'font-weight: 800;' }, formatMoney(totalExtraShare, cur)),
     el('td', { style: 'font-weight: 800;' }, formatMoney(totalNet, cur)),
-    el('td', {}, el('span', { className: 'badge badge-receive' }, 'Balanced'))
+    el('td', {}, el('span', { className: 'badge badge-receive' }, 'Balanced ✓'))
   );
   tfoot.appendChild(footTr);
 }
@@ -392,15 +390,52 @@ async function loadMealGrid() {
     tbody.appendChild(el('tr', {}, ...rowCells));
   }
 
-  // Footer: Member totals
-  const footCells = [el('td', { style: 'font-weight: 800;' }, 'TOTAL')];
-  let grandTotal = 0;
-  members.forEach(m => {
-    const tot = memberTotals[m.id] || 0;
-    grandTotal += tot;
-    footCells.push(el('td', { style: 'font-weight: 800;' }, tot.toFixed(1)));
+  // Map manual meals
+  const manualMap = {};
+  mealData.manual.forEach(m => {
+    manualMap[m.member_id] = m.manual_meals;
   });
-  footCells.push(el('td', { style: 'font-weight: 800; color: var(--primary);' }, grandTotal.toFixed(1)));
+
+  const manualCells = [el('td', { style: 'font-weight: 700; color: var(--text-muted); background: var(--bg-main);' }, 'Manual Total*')];
+  let manualGrandTotal = 0;
+  members.forEach(m => {
+    const manVal = manualMap[m.id] || 0;
+    manualGrandTotal += manVal;
+    const input = el('input', {
+      type: 'number',
+      step: '0.5',
+      min: '0',
+      value: manVal > 0 ? manVal : '',
+      className: 'meal-input',
+      placeholder: '0',
+      style: 'background: var(--bg-main); font-weight: 700;'
+    });
+    input.addEventListener('change', async (e) => {
+      const val = parseFloat(e.target.value || 0);
+      await api(`/api/months/${currentMonthId}/meals/manual`, 'POST', {
+        member_id: m.id,
+        manual_meals: val
+      });
+      showToast(`Updated manual meal for ${m.name}`, 'success');
+      await refreshSettlement();
+      loadMealGrid();
+    });
+    manualCells.push(el('td', { style: 'background: var(--bg-main);' }, input));
+  });
+  manualCells.push(el('td', { style: 'font-weight: 700; color: var(--text-muted); background: var(--bg-main);' }, manualGrandTotal > 0 ? manualGrandTotal.toFixed(1) : '0'));
+  tbody.appendChild(el('tr', { style: 'border-top: 2px solid var(--border);' }, ...manualCells));
+
+  // Footer: Member totals (matches Excel Row 68: SUM daily + manual)
+  const footCells = [el('td', { style: 'font-weight: 800;' }, 'TOTAL MEALS (মোট মিল)')];
+  let finalGrandTotal = 0;
+  members.forEach(m => {
+    const dailyTot = memberTotals[m.id] || 0;
+    const manTot = manualMap[m.id] || 0;
+    const finalTot = dailyTot > 0 ? dailyTot : manTot;
+    finalGrandTotal += finalTot;
+    footCells.push(el('td', { style: 'font-weight: 800;' }, finalTot.toFixed(1)));
+  });
+  footCells.push(el('td', { style: 'font-weight: 800; color: var(--primary); font-size: 1.05rem;' }, finalGrandTotal.toFixed(1)));
   tfoot.appendChild(el('tr', {}, ...footCells));
 
   // Also setup Manual Totals view
@@ -451,11 +486,17 @@ function renderManualMealInputs(mealData) {
 function renderBazarTable() {
   if (!currentSettlement) return;
   const tbody = document.getElementById('bazarTableBody');
+  const tfoot = document.getElementById('bazarTableFoot');
   tbody.replaceChildren();
+  if (tfoot) tfoot.replaceChildren();
 
   const cur = currentSettings.currency_symbol || '৳';
+  let totalBazarAmount = 0;
+  let totalBazarMeals = 0;
 
   currentSettlement.bazarRows.forEach(b => {
+    totalBazarAmount += b.amount;
+    totalBazarMeals += (b.meals_during_period || 0);
     const periodRate = b.meals_during_period > 0 ? (b.amount / b.meals_during_period).toFixed(2) : '-';
 
     const btnDelete = el('button', { className: 'btn btn-sm btn-danger' }, 'Delete');
@@ -478,6 +519,17 @@ function renderBazarTable() {
     );
     tbody.appendChild(tr);
   });
+
+  if (tfoot) {
+    const avgRate = totalBazarMeals > 0 ? (totalBazarAmount / totalBazarMeals).toFixed(2) : '-';
+    tfoot.appendChild(el('tr', { style: 'font-weight: 800;' },
+      el('td', { colSpan: 2 }, 'TOTAL BAZAR (সর্বমোট বাজার)'),
+      el('td', { style: 'color: var(--primary); font-size: 1rem;' }, formatMoney(totalBazarAmount, cur)),
+      el('td', {}, totalBazarMeals > 0 ? totalBazarMeals.toFixed(1) : '-'),
+      el('td', {}, avgRate !== '-' ? `${cur}${avgRate}` : '-'),
+      el('td', { colSpan: 2 }, `${currentSettlement.bazarRows.length} Shopping trips recorded`)
+    ));
+  }
 }
 
 // -------------------------------------------------------------
@@ -486,11 +538,15 @@ function renderBazarTable() {
 function renderDepositTable() {
   if (!currentSettlement) return;
   const tbody = document.getElementById('depositTableBody');
+  const tfoot = document.getElementById('depositTableFoot');
   tbody.replaceChildren();
+  if (tfoot) tfoot.replaceChildren();
 
   const cur = currentSettings.currency_symbol || '৳';
+  let totalDeposits = 0;
 
   currentSettlement.depositRows.forEach(d => {
+    totalDeposits += d.amount;
     const btnDelete = el('button', { className: 'btn btn-sm btn-danger' }, 'Delete');
     btnDelete.addEventListener('click', async () => {
       openConfirmModal(`Delete deposit of ${formatMoney(d.amount, cur)} by ${d.member_name}?`, async () => {
@@ -510,6 +566,14 @@ function renderDepositTable() {
     );
     tbody.appendChild(tr);
   });
+
+  if (tfoot) {
+    tfoot.appendChild(el('tr', { style: 'font-weight: 800;' },
+      el('td', { colSpan: 2 }, 'TOTAL DEPOSITS (সর্বমোট জমা)'),
+      el('td', { style: 'color: var(--success-text); font-size: 1rem;' }, formatMoney(totalDeposits, cur)),
+      el('td', { colSpan: 3 }, '')
+    ));
+  }
 }
 
 // -------------------------------------------------------------
@@ -518,11 +582,15 @@ function renderDepositTable() {
 function renderExtraTable() {
   if (!currentSettlement) return;
   const tbody = document.getElementById('extraTableBody');
+  const tfoot = document.getElementById('extraTableFoot');
   tbody.replaceChildren();
+  if (tfoot) tfoot.replaceChildren();
 
   const cur = currentSettings.currency_symbol || '৳';
+  let totalExtraCost = 0;
 
   currentSettlement.extraRows.forEach(e => {
+    totalExtraCost += e.amount;
     const btnDelete = el('button', { className: 'btn btn-sm btn-danger' }, 'Delete');
     btnDelete.addEventListener('click', async () => {
       openConfirmModal(`Delete expense "${e.title}" (${formatMoney(e.amount, cur)})?`, async () => {
@@ -543,6 +611,14 @@ function renderExtraTable() {
     );
     tbody.appendChild(tr);
   });
+
+  if (tfoot) {
+    tfoot.appendChild(el('tr', { style: 'font-weight: 800;' },
+      el('td', { colSpan: 2 }, 'TOTAL EXTRA & UTILITY (সর্বমোট বিল)'),
+      el('td', { style: 'font-size: 1rem;' }, formatMoney(totalExtraCost, cur)),
+      el('td', { colSpan: 4 }, '')
+    ));
+  }
 }
 
 // -------------------------------------------------------------
